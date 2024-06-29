@@ -9,7 +9,8 @@ import UIKit
 import AVKit
 
 class ViewController: UIViewController, UIDocumentPickerDelegate {
-
+    var groupedURLS: [String: [URL]] = [:]
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -78,40 +79,12 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
         return result
     }
     func pickVideo(_ number: String) -> URL {
-        if (groupedDictionary[number] != nil) {
-            return groupedDictionary[number]!.randomElement()!
+        if (self.groupedURLS[number] != nil) {
+            return self.groupedURLS[number]!.randomElement()!
         } else {
-            return groupedDictionary["ERR"]!.randomElement()!
+            return self.groupedURLS["ERR"]!.randomElement()!
         }
     }
-
-
-
-
-    /********************* 
-    VIDEO PICKER SAMPLE
-    *********************/
-    let filenames: [URL] = [
-        URL(string:"https://localhost/1_NEXT_METAL1.mp4")!, 
-        URL(string:"https://localhost/2_NEXT_METAL2.mp4")!, 
-        URL(string:"https://localhost/MENDELEYEV_the%20voice.mp4")!,
-        URL(string:"https://localhost/RICK_ROLL_RICKROLL.mp4")!,
-        URL(string:"https://localhost/LOST_Lost%20and%20found%20short.mp4")!,
-        URL(string:"https://localhost/3_NEXT_crayons.mp4")!,
-        URL(string:"https://localhost/ERR_BANANAPHONE.mp4")!
-    ]
-
-    let groupedDictionary = splitFilenames(filenames)
-    for (key, value) in groupedDictionary {
-        print("\(key): \(value.map { $0.lastPathComponent }.joined(separator: ", "))")
-    }
-    print("==================")
-    print("Next video: " + pickVideo("NEXT").lastPathComponent)
-    print("User dialed 7655: " + pickVideo("7655").lastPathComponent)
-    print("User dialed 7656: " + pickVideo("7656").lastPathComponent)
-    /********************* 
-    END VIDEO PICKER SAMPLE
-    *********************/
 
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         print(urls)
@@ -128,33 +101,31 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
         let fileList = FileManager.default.enumerator(at: pickedFolderURL, includingPropertiesForKeys: keys)!
         
         
-        var groupedURLs: [String: [URL]] = [:]
-        var randomURLs: [URL] = []
-
+        var allURLS: [URL] = []
         for case let file as URL in fileList {
-            print("Found: ", file)
-            print(file.pathExtension)
             if (file.pathExtension.lowercased() == "mp4") {
-                randomURLs.append(file)
+                allURLS.append(file)
             }
-            /*
-            
-            let newFile = file.path.replacingOccurrences(of: pickedFolderURL.path, with: "")
-            if(newFile.hasPrefix("/.") == false){ //exclude hidden
-                print(file)
-                logString += "\n\(file)"
-            }*/
         }
         
-        if let videoURL: URL = randomURLs.randomElement() {
-            print("Chose: ", videoURL)
-            let player = AVPlayer(url: videoURL)
-            let playerViewController = AVPlayerViewController()
-            playerViewController.player = player
-            
-            present(playerViewController, animated: true) {
-                player.play()
-            }
+        self.groupedURLS = splitFilenames(allURLS)
+        
+        // Print out groupedURLS
+        for (key, value) in self.groupedURLS {
+            print("\(key): \(value.map { $0.lastPathComponent }.joined(separator: ", "))")
+        }
+        
+        
+        //print("User dialed 7655: " + pickVideo("7655").lastPathComponent)
+        //print("User dialed 7656: " + pickVideo("7656").lastPathComponent)
+       let videoURL: URL = pickVideo("NEXT")
+        print("Chose: ", videoURL)
+        let player = AVPlayer(url: videoURL)
+        let playerViewController = AVPlayerViewController()
+        playerViewController.player = player
+        
+        present(playerViewController, animated: true) {
+            player.play()
         }
         
     }
