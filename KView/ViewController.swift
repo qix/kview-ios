@@ -22,10 +22,6 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
         documentPicker.delegate = self
 
 
-        // Set the initial directory.
-        //documentPicker.directoryURL = startingDirectory
-
-
         // Present the document picker.
         present(documentPicker, animated: true, completion: nil)
          
