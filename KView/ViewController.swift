@@ -51,7 +51,7 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
         for case let file as URL in fileList {
             print("Found: ", file)
             print(file.pathExtension)
-            if (file.pathExtension.lowercased() == "webm") {
+            if (file.pathExtension.lowercased() == "mp4") {
                 randomURLs.append(file)
             }
             /*
