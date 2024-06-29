@@ -10,23 +10,30 @@ import AVKit
 
 class ViewController: UIViewController, UIDocumentPickerDelegate {
     var groupedURLS: [String: [URL]] = [:]
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
+        playerViewController.showsPlaybackControls = false
+        playerViewController.videoGravity = .resizeAspectFill
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(playNextVideo), name:
+NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: nil)
         
     }
+    
+    let playerViewController = AVPlayerViewController()
+
     override func viewDidAppear(_ animated: Bool) {
-
+        
         let documentPicker =
-            UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
+        UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
         documentPicker.delegate = self
-
-
+        
         // Present the document picker.
         present(documentPicker, animated: true, completion: nil)
-         
+        
     }
-
+    
     func letterToNumber(_ letter: Character) -> Character {
         let letter = letter.lowercased()
         switch letter {
@@ -82,22 +89,23 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
         }
     }
 
+
+    
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-        print(urls)
         let pickedFolderURL = urls[0]
         let shouldStopAccessing = pickedFolderURL.startAccessingSecurityScopedResource()
-            defer {
-                if shouldStopAccessing {
-                    pickedFolderURL.stopAccessingSecurityScopedResource()
-                }
+        defer {
+            if shouldStopAccessing {
+                pickedFolderURL.stopAccessingSecurityScopedResource()
             }
+        }
         
         
         let keys : [URLResourceKey] = [.nameKey, .isDirectoryKey]
         let fileList = FileManager.default.enumerator(at: pickedFolderURL, includingPropertiesForKeys: keys)!
         
+        var allURLS: [URL] = [];
         
-        var allURLS: [URL] = []
         for case let file as URL in fileList {
             if (file.pathExtension.lowercased() == "mp4") {
                 allURLS.append(file)
@@ -105,26 +113,66 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
         }
         
         self.groupedURLS = splitFilenames(allURLS)
-        
-        // Print out groupedURLS
-        for (key, value) in self.groupedURLS {
-            print("\(key): \(value.map { $0.lastPathComponent }.joined(separator: ", "))")
-        }
-        
-        
-        //print("User dialed 7655: " + pickVideo("7655").lastPathComponent)
-        //print("User dialed 7656: " + pickVideo("7656").lastPathComponent)
-       let videoURL: URL = pickVideo("NEXT")
-        print("Chose: ", videoURL)
-        let player = AVPlayer(url: videoURL)
-        let playerViewController = AVPlayerViewController()
-        playerViewController.player = player
-        
-        present(playerViewController, animated: true) {
-            player.play()
-        }
-        
+        playVideo("NEXT")
+        present(playerViewController, animated: true)
     }
-
+        
+    @objc func playNextVideo() {
+        playVideo("NEXT")
+    }
+    var fileName = "" {
+        didSet {
+            buffer?.cancel()
+            guard !fileName.isEmpty else {
+                return
+            }
+            buffer = Task.detached{ [weak self] in
+                let duration = UInt64(2_000_000_000)
+                try? await Task.sleep(nanoseconds: duration)
+                do {
+                    try Task.checkCancellation()
+                } catch {
+                    return
+                }
+                guard let self else { return }
+                
+                await self.playChosenVideo()
+            }
+        }
+    }
+    
+    
+    var buffer: Task<(), Never>?
+    
+    override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        guard let key = presses.first?.key else { return }
+        
+        switch key.keyCode.rawValue {
+        case (UIKeyboardHIDUsage.keyboard1.rawValue)...(UIKeyboardHIDUsage.keyboard0.rawValue):
+            self.fileName.append(key.characters)
+            print("Updated fileName to: " + self.fileName)
+        default:
+            super.pressesEnded(presses, with: event)
+        }
+    }
+    
+    
+    func playChosenVideo() {
+        print("Chose: " + fileName)
+        self.playVideo(fileName)
+        fileName = ""
+    }
+    
+    func playVideo(_ input: String) {
+        /*DispatchQueue.main.async { [weak self] in
+            guard let self else { return }*/
+            let videoURL: URL = pickVideo(input)
+            print("Playing " + input + ": " + videoURL.lastPathComponent)
+            let player = AVPlayer(url: videoURL)
+            player.preventsDisplaySleepDuringVideoPlayback = true
+            playerViewController.player = player
+            player.play()
+        //}
+    }
 }
 
