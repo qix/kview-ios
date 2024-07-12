@@ -7,21 +7,41 @@
 
 import UIKit
 import AVKit
+import MediaPlayer
 
 class ViewController: UIViewController, UIDocumentPickerDelegate {
     var groupedURLS: [String: [URL]] = [:]
+    var active = false;
+    let playerViewController = AVPlayerViewController()
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        playerViewController.showsPlaybackControls = false
-        playerViewController.videoGravity = .resizeAspectFill
         
         NotificationCenter.default.addObserver(self, selector: #selector(playNextVideo), name:
 NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: nil)
         
+        
+        NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [unowned self] notification in
+            if (self.active) {
+                print("Re-entering forground")
+                if let player = playerViewController.player {
+                    player.play()
+                }
+            }
+        }
+        
+        // Something keeps going wrong, just check every five seconds and try restart if there are issues
+        Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [unowned self] timer in
+            if let player = playerViewController.player {
+                if (player.currentItem?.error != nil) {
+                    playNextVideo()
+                } else {
+                    player.play()
+                }
+            }
+        }
     }
     
-    let playerViewController = AVPlayerViewController()
 
     override func viewDidAppear(_ animated: Bool) {
         
@@ -34,9 +54,11 @@ NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: nil)
         
     }
     
-    func letterToNumber(_ letter: Character) -> Character {
+    func letterToNumber(_ letter: Character) -> String {
         let letter = letter.lowercased()
         switch letter {
+        case "0":
+            return "0"
         case "1":
             return "1"
         case "2", "a", "b", "c":
@@ -67,7 +89,7 @@ NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: nil)
             let filename = url.deletingPathExtension().lastPathComponent
             let components = filename.components(separatedBy: "_")
             for component in components {
-                let numbers = String(component.map(letterToNumber))
+                let numbers: String = component.map(letterToNumber).joined(separator: "")
 
                 for key in [numbers, component.uppercased()] {
                     if result[key] != nil {
@@ -96,7 +118,7 @@ NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: nil)
         let shouldStopAccessing = pickedFolderURL.startAccessingSecurityScopedResource()
         defer {
             if shouldStopAccessing {
-                pickedFolderURL.stopAccessingSecurityScopedResource()
+               // pickedFolderURL.stopAccessingSecurityScopedResource()
             }
         }
         
@@ -113,31 +135,42 @@ NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: nil)
         }
         
         self.groupedURLS = splitFilenames(allURLS)
+        if (self.active == false) {
+            self.active = true;
+            present(playerViewController, animated: true)
+        }
         playVideo("NEXT")
-        present(playerViewController, animated: true)
     }
         
     @objc func playNextVideo() {
         playVideo("NEXT")
     }
-    var fileName = "" {
-        didSet {
-            buffer?.cancel()
-            guard !fileName.isEmpty else {
+    
+    var fileName = ""
+    
+    
+    func resetKeyTimer() {
+        buffer?.cancel()
+        guard !fileName.isEmpty else {
+            return
+        }
+        buffer = Task.detached{ [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(2500_000_000))
+            do {
+                try Task.checkCancellation()
+            } catch {
                 return
             }
-            buffer = Task.detached{ [weak self] in
-                let duration = UInt64(2_000_000_000)
-                try? await Task.sleep(nanoseconds: duration)
-                do {
-                    try Task.checkCancellation()
-                } catch {
-                    return
-                }
-                guard let self else { return }
-                
-                await self.playChosenVideo()
+            guard let self else { return }
+            await self.playDialed()
+
+            try? await Task.sleep(nanoseconds: UInt64(1250_000_000))
+            do {
+                try Task.checkCancellation()
+            } catch {
+                return
             }
+            await self.clearDialNumber()
         }
     }
     
@@ -148,31 +181,69 @@ NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: nil)
         guard let key = presses.first?.key else { return }
         
         switch key.keyCode.rawValue {
+        case (UIKeyboardHIDUsage.keyboardA.rawValue)...(UIKeyboardHIDUsage.keyboardZ.rawValue):
+            fallthrough
         case (UIKeyboardHIDUsage.keyboard1.rawValue)...(UIKeyboardHIDUsage.keyboard0.rawValue):
-            self.fileName.append(key.characters)
+            self.fileName.append(key.characters.map(letterToNumber).joined(separator: ""))
             print("Updated fileName to: " + self.fileName)
+            self.resetKeyTimer()
+        case UIKeyboardHIDUsage.keyboardPeriod.rawValue:
+            print("Timer reset...")
+            self.resetKeyTimer()
         default:
             super.pressesEnded(presses, with: event)
         }
     }
     
     
-    func playChosenVideo() {
-        print("Chose: " + fileName)
+    func playDialed() {
+        print("Dialed: " + fileName)
         self.playVideo(fileName)
+    }
+
+    func clearDialNumber() {
+        print("Clearing dialed code")
         fileName = ""
     }
     
     func playVideo(_ input: String) {
-        /*DispatchQueue.main.async { [weak self] in
-            guard let self else { return }*/
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            
+            if (input == "100") {
+                print("Setting volume to zero")
+                (MPVolumeView().subviews.filter{NSStringFromClass($0.classForCoder) == "MPVolumeSlider"}.first as? UISlider)?.setValue(0, animated: false)
+                return
+            } else if (input == "101")   {
+                print("Setting volume to full")
+                (MPVolumeView().subviews.filter{NSStringFromClass($0.classForCoder) == "MPVolumeSlider"}.first as? UISlider)?.setValue(1, animated: false)
+                return
+            }
+            
             let videoURL: URL = pickVideo(input)
-            print("Playing " + input + ": " + videoURL.lastPathComponent)
+            
+            print("Playing " + input + ": " + videoURL.absoluteString)
             let player = AVPlayer(url: videoURL)
             player.preventsDisplaySleepDuringVideoPlayback = true
+            if let old = playerViewController.player {
+                old.pause()
+            }
             playerViewController.player = player
+            playerViewController.showsPlaybackControls = false
+            playerViewController.videoGravity = .resizeAspectFill
             player.play()
-        //}
+            /*
+            Task.detached {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                if let error = player.error {
+                    print("AVError \(error)")
+                }
+                if let error = player.currentItem?.error {
+                    print("currentItem \(error)")
+                }
+            }*/
+            
+        }
     }
 }
 
