@@ -13,12 +13,29 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
     var groupedURLS: [String: [URL]] = [:]
     var active = false;
     let playerViewController = AVPlayerViewController()
+    var captureSession = AVCaptureSession()
+    var previewLayer:AVCaptureVideoPreviewLayer!
+    var captureDevice:AVCaptureDevice!
+    
+    
+    func prepareCamera(){
+        captureSession.sessionPreset = AVCaptureSession.Preset.photo
 
+        let availableDevices = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera], mediaType: AVMediaType.video, position: .back).devices
+        
+        captureDevice = availableDevices.first
+        
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        NotificationCenter.default.addObserver(self, selector: #selector(playNextVideo), name:
-NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: nil)
+        prepareCamera();
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(playNextVideo) ,
+            name: NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: nil)
         
         
         NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [unowned self] notification in
@@ -44,6 +61,15 @@ NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: nil)
     
 
     override func viewDidAppear(_ animated: Bool) {
+
+        guard let captureDevice = AVCaptureDevice.default(for: .video),
+        let input = try? AVCaptureDeviceInput(device: captureDevice) else {return}
+
+        captureSession.addInput(input)
+        previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
+        previewLayer.frame = view.frame
+        previewLayer.videoGravity = .resizeAspectFill
+        previewLayer.connection?.videoRotationAngle = 0
         
         let documentPicker =
         UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
@@ -103,10 +129,16 @@ NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: nil)
 
         return result
     }
-    func pickVideo(_ number: String) -> URL {
+    func pickVideo(_ number: String) -> URL? {
+        if (number == "LIVE") {
+            return nil
+        }
         if (self.groupedURLS[number] != nil) {
             return self.groupedURLS[number]!.randomElement()!
         } else {
+            if (number == "NEXT") {
+                return nil
+            }
             return self.groupedURLS["ERR"]!.randomElement()!
         }
     }
@@ -137,7 +169,6 @@ NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: nil)
         self.groupedURLS = splitFilenames(allURLS)
         if (self.active == false) {
             self.active = true;
-            present(playerViewController, animated: true)
         }
         playVideo("NEXT")
     }
@@ -220,29 +251,45 @@ NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: nil)
                 return
             }
             
-            let videoURL: URL = pickVideo(input)
-            
-            print("Playing " + input + ": " + videoURL.absoluteString)
-            let player = AVPlayer(url: videoURL)
-            player.preventsDisplaySleepDuringVideoPlayback = true
-            if let old = playerViewController.player {
-                old.pause()
+            if let videoURL: URL = pickVideo(input) {
+                print("Playing " + input + ": " + videoURL.absoluteString)
+                let player = AVPlayer(url: videoURL)
+                player.preventsDisplaySleepDuringVideoPlayback = true
+                if let old = playerViewController.player {
+                    old.pause()
+                }
+                playerViewController.player = player
+                playerViewController.showsPlaybackControls = false
+                playerViewController.videoGravity = .resizeAspectFill
+                player.play()
+                
+                if (captureSession.isRunning) {
+                    captureSession.stopRunning()
+                }
+                previewLayer.removeFromSuperlayer()
+                previewLayer.removeFromSuperlayer()
+                present(playerViewController, animated: false)
+            } else {
+                print("Playing live video")
+                do {
+                    try captureDevice.lockForConfiguration()
+                    captureDevice.videoZoomFactor = 1.0
+                    captureDevice.unlockForConfiguration()
+                } catch {
+                    print("Error setting capture device zoom")
+                }
+                
+                view.layer.addSublayer(previewLayer)
+                playerViewController.dismiss(animated: false)
+                
+                DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                    guard let self else { return }
+                    if (!captureSession.isRunning) {
+                        captureSession.startRunning()
+                    }
+                }
+                
             }
-            playerViewController.player = player
-            playerViewController.showsPlaybackControls = false
-            playerViewController.videoGravity = .resizeAspectFill
-            player.play()
-            /*
-            Task.detached {
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
-                if let error = player.error {
-                    print("AVError \(error)")
-                }
-                if let error = player.currentItem?.error {
-                    print("currentItem \(error)")
-                }
-            }*/
-            
         }
     }
 }
