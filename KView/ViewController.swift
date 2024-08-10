@@ -25,6 +25,15 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
         
         captureDevice = availableDevices.first
         
+        guard let captureDevice = AVCaptureDevice.default(for: .video),
+        let input = try? AVCaptureDeviceInput(device: captureDevice) else {return}
+
+        captureSession.addInput(input)
+        previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
+        previewLayer.frame = view.frame
+        previewLayer.videoGravity = .resizeAspectFill
+        previewLayer.connection?.videoRotationAngle = 0
+        
     }
     
     override func viewDidLoad() {
@@ -57,27 +66,19 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
                 }
             }
         }
+        
     }
     
 
     override func viewDidAppear(_ animated: Bool) {
-
-        guard let captureDevice = AVCaptureDevice.default(for: .video),
-        let input = try? AVCaptureDeviceInput(device: captureDevice) else {return}
-
-        captureSession.addInput(input)
-        previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-        previewLayer.frame = view.frame
-        previewLayer.videoGravity = .resizeAspectFill
-        previewLayer.connection?.videoRotationAngle = 0
-        
-        let documentPicker =
-        UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
-        documentPicker.delegate = self
-        
-        // Present the document picker.
-        present(documentPicker, animated: true, completion: nil)
-        
+        if (!self.active) {
+            let documentPicker =
+            UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
+            documentPicker.delegate = self
+            
+            // Present the document picker.
+            present(documentPicker, animated: true, completion: nil)
+        }
     }
     
     func letterToNumber(_ letter: Character) -> String {
@@ -130,7 +131,7 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
         return result
     }
     func pickVideo(_ number: String) -> URL? {
-        if (number == "LIVE") {
+        if (number == "LIVE" || number == "5483") {
             return nil
         }
         if (self.groupedURLS[number] != nil) {
@@ -263,13 +264,17 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
                 playerViewController.videoGravity = .resizeAspectFill
                 player.play()
                 
+                
                 if (captureSession.isRunning) {
                     captureSession.stopRunning()
                 }
                 previewLayer.removeFromSuperlayer()
-                previewLayer.removeFromSuperlayer()
-                present(playerViewController, animated: false)
+                
+                if (playerViewController.presentingViewController == nil) {
+                    present(playerViewController, animated: false)
+                }
             } else {
+            
                 print("Playing live video")
                 do {
                     try captureDevice.lockForConfiguration()
