@@ -5,50 +5,52 @@
 //  Created by Josh on 6/28/24.
 //
 
-import UIKit
 import AVKit
 import MediaPlayer
+import UIKit
 
 class ViewController: UIViewController, UIDocumentPickerDelegate {
     var groupedURLS: [String: [URL]] = [:]
-    var active = false;
+    var active = false
     let playerViewController = AVPlayerViewController()
     var captureSession = AVCaptureSession()
-    var previewLayer:AVCaptureVideoPreviewLayer!
-    var captureDevice:AVCaptureDevice!
+    var previewLayer: AVCaptureVideoPreviewLayer!
+    var captureDevice: AVCaptureDevice!
     
-    
-    func prepareCamera(){
+    func prepareCamera() {
         captureSession.sessionPreset = AVCaptureSession.Preset.photo
 
         let availableDevices = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera], mediaType: AVMediaType.video, position: .back).devices
         
         captureDevice = availableDevices.first
         
-        guard let captureDevice = AVCaptureDevice.default(for: .video),
-        let input = try? AVCaptureDeviceInput(device: captureDevice) else {return}
-
-        captureSession.addInput(input)
-        previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-        previewLayer.frame = view.frame
-        previewLayer.videoGravity = .resizeAspectFill
-        previewLayer.connection?.videoRotationAngle = 0
-        
+        if let captureDevice = AVCaptureDevice.default(for: .video) {
+            do {
+                let input = try AVCaptureDeviceInput(device: captureDevice)
+                captureSession.addInput(input)
+            } catch {
+                print("Failed to capture camera")
+                return
+            }
+            previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
+            previewLayer.frame = view.frame
+            previewLayer.videoGravity = .resizeAspectFill
+            previewLayer.connection?.videoRotationAngle = 0
+        }
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        prepareCamera();
+        prepareCamera()
         
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(playNextVideo) ,
+            selector: #selector(playNextVideo),
             name: NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: nil)
         
-        
-        NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [unowned self] notification in
-            if (self.active) {
+        NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [unowned self] _ in
+            if self.active {
                 print("Re-entering forground")
                 if let player = playerViewController.player {
                     player.play()
@@ -57,23 +59,21 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
         }
         
         // Something keeps going wrong, just check every five seconds and try restart if there are issues
-        Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [unowned self] timer in
+        Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [unowned self] _ in
             if let player = playerViewController.player {
-                if (player.currentItem?.error != nil) {
+                if player.currentItem?.error != nil {
                     playNextVideo()
                 } else {
                     player.play()
                 }
             }
         }
-        
     }
     
-
     override func viewDidAppear(_ animated: Bool) {
-        if (!self.active) {
+        if !active {
             let documentPicker =
-            UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
+                UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
             documentPicker.delegate = self
             
             // Present the document picker.
@@ -90,19 +90,19 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
             return "1"
         case "2", "a", "b", "c":
             return "2"
-        case "3","d", "e", "f":
+        case "3", "d", "e", "f":
             return "3"
-        case "4","g", "h", "i":
+        case "4", "g", "h", "i":
             return "4"
-        case "5","j", "k", "l":
+        case "5", "j", "k", "l":
             return "5"
-        case "6","m", "n", "o":
+        case "6", "m", "n", "o":
             return "6"
-        case "7","p", "q", "r", "s":
+        case "7", "p", "q", "r", "s":
             return "7"
-        case "8","t", "u", "v":
+        case "8", "t", "u", "v":
             return "8"
-        case "9","w", "x", "y", "z":
+        case "9", "w", "x", "y", "z":
             return "9"
         default:
             return "?"
@@ -116,6 +116,9 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
             let filename = url.deletingPathExtension().lastPathComponent
             let components = filename.components(separatedBy: "_")
             for component in components {
+                if component == "" {
+                    break
+                }
                 let numbers: String = component.map(letterToNumber).joined(separator: "")
 
                 for key in [numbers, component.uppercased()] {
@@ -130,46 +133,52 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
 
         return result
     }
+
     func pickVideo(_ number: String) -> URL? {
-        if (number == "LIVE" || number == "5483") {
+        if number == "LIVE" || number == "5483" {
             return nil
         }
-        if (self.groupedURLS[number] != nil) {
-            return self.groupedURLS[number]!.randomElement()!
+        if groupedURLS[number] != nil {
+            return groupedURLS[number]!.randomElement()!
         } else {
-            if (number == "NEXT") {
+            if number == "NEXT" {
                 return nil
             }
-            return self.groupedURLS["ERR"]!.randomElement()!
+            return groupedURLS["ERR"]!.randomElement()!
         }
     }
 
-
-    
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         let pickedFolderURL = urls[0]
         let shouldStopAccessing = pickedFolderURL.startAccessingSecurityScopedResource()
         defer {
             if shouldStopAccessing {
-               // pickedFolderURL.stopAccessingSecurityScopedResource()
+                // pickedFolderURL.stopAccessingSecurityScopedResource()
             }
         }
         
-        
-        let keys : [URLResourceKey] = [.nameKey, .isDirectoryKey]
+        let keys: [URLResourceKey] = [.nameKey, .isDirectoryKey]
         let fileList = FileManager.default.enumerator(at: pickedFolderURL, includingPropertiesForKeys: keys)!
         
-        var allURLS: [URL] = [];
+        var allURLS: [URL] = []
         
         for case let file as URL in fileList {
-            if (file.pathExtension.lowercased() == "mp4") {
+            if file.pathExtension.lowercased() == "mp4" {
                 allURLS.append(file)
             }
         }
         
-        self.groupedURLS = splitFilenames(allURLS)
-        if (self.active == false) {
-            self.active = true;
+        groupedURLS = splitFilenames(allURLS)
+        print("Filenames grouped:")
+        for (key, urls) in groupedURLS {
+            print(" \(key):")
+            for url in urls {
+                print("  - \(url.lastPathComponent)")
+            }
+        }
+
+        if active == false {
+            active = true
         }
         playVideo("NEXT")
     }
@@ -180,14 +189,13 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
     
     var fileName = ""
     
-    
     func resetKeyTimer() {
         buffer?.cancel()
         guard !fileName.isEmpty else {
             return
         }
-        buffer = Task.detached{ [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(2500_000_000))
+        buffer = Task.detached { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(2_500_000_000))
             do {
                 try Task.checkCancellation()
             } catch {
@@ -196,7 +204,7 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
             guard let self else { return }
             await self.playDialed()
 
-            try? await Task.sleep(nanoseconds: UInt64(1250_000_000))
+            try? await Task.sleep(nanoseconds: UInt64(5_000_000_000))
             do {
                 try Task.checkCancellation()
             } catch {
@@ -206,8 +214,7 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
         }
     }
     
-    
-    var buffer: Task<(), Never>?
+    var buffer: Task<Void, Never>?
     
     override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
         guard let key = presses.first?.key else { return }
@@ -216,21 +223,20 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
         case (UIKeyboardHIDUsage.keyboardA.rawValue)...(UIKeyboardHIDUsage.keyboardZ.rawValue):
             fallthrough
         case (UIKeyboardHIDUsage.keyboard1.rawValue)...(UIKeyboardHIDUsage.keyboard0.rawValue):
-            self.fileName.append(key.characters.map(letterToNumber).joined(separator: ""))
-            print("Updated fileName to: " + self.fileName)
-            self.resetKeyTimer()
+            fileName.append(key.characters.map(letterToNumber).joined(separator: ""))
+            print("Updated fileName to: " + fileName)
+            resetKeyTimer()
         case UIKeyboardHIDUsage.keyboardPeriod.rawValue:
             print("Timer reset...")
-            self.resetKeyTimer()
+            resetKeyTimer()
         default:
             super.pressesEnded(presses, with: event)
         }
     }
     
-    
     func playDialed() {
         print("Dialed: " + fileName)
-        self.playVideo(fileName)
+        playVideo(fileName)
     }
 
     func clearDialNumber() {
@@ -242,13 +248,13 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             
-            if (input == "100") {
+            if input == "100" {
                 print("Setting volume to zero")
-                (MPVolumeView().subviews.filter{NSStringFromClass($0.classForCoder) == "MPVolumeSlider"}.first as? UISlider)?.setValue(0, animated: false)
+                (MPVolumeView().subviews.filter { NSStringFromClass($0.classForCoder) == "MPVolumeSlider" }.first as? UISlider)?.setValue(0, animated: false)
                 return
-            } else if (input == "101")   {
+            } else if input == "101" {
                 print("Setting volume to full")
-                (MPVolumeView().subviews.filter{NSStringFromClass($0.classForCoder) == "MPVolumeSlider"}.first as? UISlider)?.setValue(1, animated: false)
+                (MPVolumeView().subviews.filter { NSStringFromClass($0.classForCoder) == "MPVolumeSlider" }.first as? UISlider)?.setValue(1, animated: false)
                 return
             }
             
@@ -264,17 +270,16 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
                 playerViewController.videoGravity = .resizeAspectFill
                 player.play()
                 
-                
-                if (captureSession.isRunning) {
+                if captureSession.isRunning {
                     captureSession.stopRunning()
                 }
-                previewLayer.removeFromSuperlayer()
-                
-                if (playerViewController.presentingViewController == nil) {
+                if previewLayer != nil {
+                    previewLayer.removeFromSuperlayer()
+                }
+                if playerViewController.presentingViewController == nil {
                     present(playerViewController, animated: false)
                 }
-            } else {
-            
+            } else if captureDevice != nil {
                 print("Playing live video")
                 do {
                     try captureDevice.lockForConfiguration()
@@ -286,16 +291,17 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
                 
                 view.layer.addSublayer(previewLayer)
                 playerViewController.dismiss(animated: false)
-                
+                if let player = playerViewController.player {
+                    player.pause()
+                }
+
                 DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                     guard let self else { return }
-                    if (!captureSession.isRunning) {
+                    if !captureSession.isRunning {
                         captureSession.startRunning()
                     }
                 }
-                
             }
         }
     }
 }
-
