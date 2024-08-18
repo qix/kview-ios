@@ -1,15 +1,12 @@
 from collections import defaultdict
 import random
 from pathlib import Path
-
+from .util import path_codes
 
 videos = Path('/Users/josh/kaleido-video/').expanduser()
 all_codes = set()
 for path in videos.glob('*'):
-    if path.stem.startswith('.'):
-        continue
-    parts = path.stem.split('__')[0].split('_')
-    all_codes.update([code.upper() for code in parts])
+    all_codes.update(path_codes(path, include_secret=True))
 
 secret_codes = set([code for code in all_codes if len(code) != 1])
 
