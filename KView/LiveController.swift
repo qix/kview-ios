@@ -16,10 +16,24 @@ let superUserCodes = [
     superUserVolumeFull
 ]
 
-class ViewController: UIViewController, UIDocumentPickerDelegate {
+enum MyError: Error {
+    case runtimeError(String)
+}
+
+enum LiveMode {
+    case videoDialing, videoSequential, cameraOnly
+}
+
+class LiveController: UIViewController, UIDocumentPickerDelegate {
+    var nextOrderedIndex = 0
+    var orderedURLS: [URL] = []
     var groupedURLS: [String: [URL]] = [:]
-    var active = false
+    var mode: LiveMode = .cameraOnly
     var liveVideo = false
+    var active = false
+    var videoFolderEnabled = true
+    var resumeTimer: Timer? = nil
+    
     var fileName = ""
     var pausedAt: [String.Index] = []
     let playerViewController = AVPlayerViewController()
@@ -48,20 +62,29 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
             previewLayer.connection?.videoRotationAngle = 0
         }
     }
-    
+        
+    func prepareAudio() {
+        guard let _ = try? AVAudioSession.sharedInstance().setCategory(
+            AVAudioSession.Category.playback,
+            mode: AVAudioSession.Mode.default,
+            options: []
+        ) else { return }
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        
         prepareCamera()
+        prepareAudio()
         
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(playNextVideo),
-            name: NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: nil)
+            name: NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: nil
+        )
         
         NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [unowned self] _ in
-            if self.active {
+            if self.active == true {
                 print("Re-entering forground")
                 
                 if self.liveVideo {
@@ -74,9 +97,42 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
                 }
             }
         }
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        if let timer = resumeTimer {
+            timer.invalidate()
+            resumeTimer = nil
+        }
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        UIAccessibility.requestGuidedAccessSession(enabled: true) {
+            success in
+            print("Request guided access success: \(success)")
+        }
         
+        if mode == .videoDialing || mode == .videoSequential {
+            let documentPicker =
+                UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
+            documentPicker.delegate = self
+                
+            // Present the document picker.
+            present(documentPicker, animated: false, completion: nil)
+        } else if (mode == .cameraOnly) {
+            self.active = true
+            playVideo("LIVE")
+        } else {
+            print("Error: Unknown mode")
+        }
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
         // Something keeps going wrong, just check every five seconds and try restart if there are issues
-        Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [unowned self] _ in
+        if let timer = resumeTimer {
+            timer.invalidate()
+        }
+        resumeTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [unowned self] _ in
             if self.liveVideo == false {
                 if let player = playerViewController.player {
                     if player.currentItem?.error != nil {
@@ -88,17 +144,6 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
                     }
                 }
             }
-        }
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        if !active {
-            let documentPicker =
-                UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
-            documentPicker.delegate = self
-            
-            // Present the document picker.
-            present(documentPicker, animated: true, completion: nil)
         }
     }
     
@@ -163,18 +208,31 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
         }
         return groupedURLS[number] != nil
     }
+
     func pickVideo(_ number: String) -> URL? {
         if number == "LIVE" || number == "5483" {
             return nil
+        }
+        if mode == .videoSequential {
+            let playIndex = nextOrderedIndex
+            nextOrderedIndex = (nextOrderedIndex +  1) % orderedURLS.count
+            return orderedURLS[playIndex]
         }
         if groupedURLS[number] != nil {
             return groupedURLS[number]!.randomElement()!
         } else {
             if number == "NEXT" {
+                if mode == .videoSequential {
+                    return groupedURLS.randomElement()!.value.randomElement()!
+                }
                 return nil
             }
             return groupedURLS["ERR"]!.randomElement()!
         }
+    }
+
+    func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+        dismiss(animated: true, completion: nil)
     }
 
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
@@ -189,15 +247,15 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
         let keys: [URLResourceKey] = [.nameKey, .isDirectoryKey]
         let fileList = FileManager.default.enumerator(at: pickedFolderURL, includingPropertiesForKeys: keys)!
         
-        var allURLS: [URL] = []
-        
+        orderedURLS = []
         for case let file as URL in fileList {
             if file.pathExtension.lowercased() == "mp4" {
-                allURLS.append(file)
+                orderedURLS.append(file)
             }
         }
+        nextOrderedIndex = 0
         
-        groupedURLS = splitFilenames(allURLS)
+        groupedURLS = splitFilenames(orderedURLS)
         print("Filenames grouped:")
         for (key, urls) in groupedURLS {
             print(" \(key):")
@@ -206,21 +264,13 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
             }
         }
 
-        if active == false {
-            active = true
-            
-            UIAccessibility.requestGuidedAccessSession(enabled: true){
-                success in
-                print("Request guided access success: \(success)")
-            }
-        }
+        self.active = true
         playVideo("NEXT")
     }
         
     @objc func playNextVideo() {
         playVideo("NEXT")
     }
-    
     
     func resetKeyTimer() {
         buffer?.cancel()
@@ -280,15 +330,15 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
     
     func notePause() {
         print("Paused after:", fileName)
-        self.pausedAt.append(fileName.endIndex)
+        pausedAt.append(fileName.endIndex)
     }
     
     func playDialed() {
         print("Dialed: " + fileName)
         
         // Whenever we paused, take a substring from there
-        let tryStrings = ([fileName.startIndex] + self.pausedAt).map { index in
-            return String(fileName[index...])
+        let tryStrings = ([fileName.startIndex] + pausedAt).map { index in
+            String(fileName[index...])
         }
         
         // Try all of the substrings where we had a longer pause
@@ -305,11 +355,10 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
     func clearDialNumber() {
         print("Clearing dialed code")
         fileName = ""
-        self.pausedAt = []
+        pausedAt = []
     }
     
     func setVolume(_ volume: Float) {
-       // (MPVolumeView().subviews.filter { NSStringFromClass($0.classForCoder) == "MPVolumeSlider" }.first as? UISlider)?.setValue(0, animated: false)
         let volumeView = MPVolumeView()
         let slider = volumeView.subviews.first(where: { $0 is UISlider }) as? UISlider
 
@@ -317,6 +366,7 @@ class ViewController: UIViewController, UIDocumentPickerDelegate {
             slider?.value = volume
         }
     }
+
     func playVideo(_ input: String) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }

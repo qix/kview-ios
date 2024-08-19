@@ -23,8 +23,9 @@ video_codes: Tuple[str, Path] = [
 ]
 
 
-def create_video(filename, xdim, ydim, length, clips):
+def create_video(xdim, ydim, length, clips):
     outputs = []
+    codes = []
     for code, path in random.sample(video_codes, k=clips):
         clip = editor.VideoFileClip(str(path)).resize( (xdim, ydim) ) 
 
@@ -44,13 +45,13 @@ def create_video(filename, xdim, ydim, length, clips):
         txt_clip = txt_clip.set_pos((x-5, y-5)).set_duration(length)  
         bg_clip = bg_clip.set_pos((x + 5, y+5)).set_duration(length)  
 
+        codes.append(code)
         outputs.append(editor.CompositeVideoClip([out_clip, bg_clip, txt_clip]))
 
     # combine clips from different videos
     collage = editor.concatenate_videoclips(outputs) 
 
-    collage.write_videofile(filename, audio_codec="aac")
+    collage.write_videofile('411__%s.mp4' % '-'.join(codes), audio_codec="aac")
 
 
-for x in range(10):
-    create_video('411__%d.mp4' % x, xdim=2752, ydim=2064, length=4, clips=15)
+create_video(xdim=2752, ydim=2064, length=4, clips=15)
