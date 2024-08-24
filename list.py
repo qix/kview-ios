@@ -1,7 +1,7 @@
 from collections import defaultdict
 import random
 from pathlib import Path
-from .util import path_codes
+from util import path_codes
 
 videos = Path('/Users/josh/kaleido-video/').expanduser()
 all_codes = set()

@@ -8,88 +8,124 @@
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
-        <!--Main View Controller-->
+        <!--Main Menu Controller-->
         <scene sceneID="Jzc-Kq-7bv">
             <objects>
-                <tableViewController id="Egc-jZ-UwG" customClass="MainViewController" customModule="KView" customModuleProvider="target" sceneMemberID="viewController">
+                <tableViewController id="Egc-jZ-UwG" customClass="MainMenuController" customModule="KView" customModuleProvider="target" sceneMemberID="viewController">
                     <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="static" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" id="N0E-Wo-JCQ">
-                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
-                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                        <rect key="frame" x="0.0" y="0.0" width="500" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <sections>
                             <tableViewSection id="LL7-l6-uBq">
                                 <cells>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="CameraOnly" id="ajV-CX-b6J">
-                                        <rect key="frame" x="0.0" y="50" width="393" height="43.666667938232422"/>
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="none" indentationWidth="10" id="t3p-YZ-MAE">
+                                        <rect key="frame" x="0.0" y="50" width="500" height="43.666667938232422"/>
                                         <autoresizingMask key="autoresizingMask"/>
-                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="ajV-CX-b6J" id="lix-fd-EN5">
-                                            <rect key="frame" x="0.0" y="0.0" width="393" height="43.666667938232422"/>
+                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="t3p-YZ-MAE" id="EOa-gc-iAd">
+                                            <rect key="frame" x="0.0" y="0.0" width="500" height="43.666667938232422"/>
+                                            <autoresizingMask key="autoresizingMask"/>
+                                            <subviews>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Fullscreen Media Player" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" enabled="NO" adjustsFontSizeToFit="NO" id="vbT-cv-nHr">
+                                                    <rect key="frame" x="0.0" y="-1" width="500" height="44"/>
+                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                    <fontDescription key="fontDescription" type="boldSystem" pointSize="17"/>
+                                                    <color key="textColor" systemColor="secondaryLabelColor"/>
+                                                    <nil key="highlightedColor"/>
+                                                </label>
+                                            </subviews>
+                                        </tableViewCellContentView>
+                                    </tableViewCell>
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="CameraOnly" id="ajV-CX-b6J">
+                                        <rect key="frame" x="0.0" y="93.666667938232422" width="500" height="1"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="ajV-CX-b6J" translatesAutoresizingMaskIntoConstraints="NO" id="lix-fd-EN5">
+                                            <rect key="frame" x="0.0" y="0.0" width="500" height="1"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
                                                 <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" showsMenuAsPrimaryAction="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" pointerInteraction="YES" translatesAutoresizingMaskIntoConstraints="NO" id="aBH-xK-gQP">
-                                                    <rect key="frame" x="-0.45544554455545949" y="2.0858073092940685" width="393" height="43.666667938232649"/>
-                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                                    <rect key="frame" x="0.0" y="0.0" width="500" height="1"/>
+                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <state key="normal" title="Button"/>
                                                     <buttonConfiguration key="configuration" style="plain" title="Start with camera only" buttonSize="medium"/>
                                                     <connections>
-                                                        <segue destination="6OH-jD-EKG" kind="presentation" identifier="CameraOnly" modalPresentationStyle="fullScreen" id="ne9-lw-yJS"/>
+                                                        <segue destination="6OH-jD-EKG" kind="presentation" identifier="CameraOnly" modalPresentationStyle="overFullScreen" id="ne9-lw-yJS"/>
                                                     </connections>
                                                 </button>
                                             </subviews>
                                         </tableViewCellContentView>
                                     </tableViewCell>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="VideoDialing" id="GZy-RB-UR7">
-                                        <rect key="frame" x="0.0" y="93.666667938232422" width="393" height="43.666667938232422"/>
+                                        <rect key="frame" x="0.0" y="94.666667938232422" width="500" height="43.666667938232422"/>
                                         <autoresizingMask key="autoresizingMask"/>
-                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="GZy-RB-UR7" id="SDY-xv-Fo0">
-                                            <rect key="frame" x="0.0" y="0.0" width="393" height="43.666667938232422"/>
+                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="GZy-RB-UR7" translatesAutoresizingMaskIntoConstraints="NO" id="SDY-xv-Fo0">
+                                            <rect key="frame" x="0.0" y="0.0" width="500" height="43.666667938232422"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
                                                 <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="4aa-cM-u5w" userLabel="Start with video dialing">
-                                                    <rect key="frame" x="-0.45544554455455" y="2.2211195690813383" width="393" height="43.666667938232422"/>
-                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                                    <rect key="frame" x="0.0" y="0.0" width="500" height="43"/>
+                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <state key="normal" title="Button"/>
-                                                    <buttonConfiguration key="configuration" style="plain" title="Start with video dialing"/>
+                                                    <buttonConfiguration key="configuration" style="plain" title="Start with video dialing" buttonSize="medium"/>
                                                     <connections>
-                                                        <segue destination="6OH-jD-EKG" kind="presentation" identifier="VideoDialing" modalPresentationStyle="fullScreen" id="VSQ-kx-MHB"/>
+                                                        <segue destination="6OH-jD-EKG" kind="presentation" identifier="VideoDialing" modalPresentationStyle="overFullScreen" id="VSQ-kx-MHB"/>
                                                     </connections>
                                                 </button>
                                             </subviews>
                                         </tableViewCellContentView>
                                     </tableViewCell>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="VideoSequential" id="0qo-yu-Qs9">
-                                        <rect key="frame" x="0.0" y="137.33333587646484" width="393" height="43.666667938232422"/>
+                                        <rect key="frame" x="0.0" y="138.33333587646484" width="500" height="43.666667938232422"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="0qo-yu-Qs9" id="jyg-hq-OkM">
-                                            <rect key="frame" x="0.0" y="0.0" width="393" height="43.666667938232422"/>
+                                            <rect key="frame" x="0.0" y="0.0" width="500" height="43.666667938232422"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
                                                 <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Dge-Q5-LaH" userLabel="Start with video sequence">
-                                                    <rect key="frame" x="-0.45544554455455" y="2.2211195690813383" width="393" height="43.666667938232422"/>
-                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                                    <rect key="frame" x="0.0" y="2" width="500" height="44"/>
+                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <state key="normal" title="Button"/>
-                                                    <buttonConfiguration key="configuration" style="plain" title="Start with video sequence"/>
+                                                    <buttonConfiguration key="configuration" style="plain" title="Start with video sequence" buttonSize="medium"/>
                                                     <connections>
-                                                        <segue destination="6OH-jD-EKG" kind="presentation" identifier="VideoSequence" modalPresentationStyle="fullScreen" id="yrO-79-B0t"/>
+                                                        <segue destination="6OH-jD-EKG" kind="presentation" identifier="VideoSequence" modalPresentationStyle="overFullScreen" id="yrO-79-B0t"/>
+                                                    </connections>
+                                                </button>
+                                            </subviews>
+                                        </tableViewCellContentView>
+                                    </tableViewCell>
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="BurningMan" id="yje-YU-bgR">
+                                        <rect key="frame" x="0.0" y="182.00000381469727" width="500" height="43.666667938232422"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="yje-YU-bgR" id="RdB-7H-iv7">
+                                            <rect key="frame" x="0.0" y="0.0" width="500" height="43.666667938232422"/>
+                                            <autoresizingMask key="autoresizingMask"/>
+                                            <subviews>
+                                                <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="f9Y-RD-zgN" userLabel="Burning man w/ timelapse">
+                                                    <rect key="frame" x="0.0" y="2" width="500" height="44"/>
+                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                    <state key="normal" title="Button"/>
+                                                    <buttonConfiguration key="configuration" style="plain" title="Burning man w/ timelapse" buttonSize="medium"/>
+                                                    <connections>
+                                                        <segue destination="6OH-jD-EKG" kind="presentation" identifier="BurningMan" modalPresentationStyle="overFullScreen" id="SAJ-6k-IjP"/>
                                                     </connections>
                                                 </button>
                                             </subviews>
                                         </tableViewCellContentView>
                                     </tableViewCell>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="Help" id="Z0z-5J-xQH">
-                                        <rect key="frame" x="0.0" y="181.00000381469727" width="393" height="43.666667938232422"/>
+                                        <rect key="frame" x="0.0" y="225.66667175292969" width="500" height="1"/>
                                         <autoresizingMask key="autoresizingMask"/>
-                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="Z0z-5J-xQH" id="4Ab-Nh-yhO">
-                                            <rect key="frame" x="0.0" y="0.0" width="393" height="43.666667938232422"/>
-                                            <autoresizingMask key="autoresizingMask"/>
+                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="Z0z-5J-xQH" translatesAutoresizingMaskIntoConstraints="NO" id="4Ab-Nh-yhO">
+                                            <rect key="frame" x="0.0" y="0.0" width="500" height="1"/>
+                                            <autoresizingMask key="autoresizingMask" flexibleMaxY="YES"/>
                                             <subviews>
                                                 <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="vzH-Xo-eS0">
-                                                    <rect key="frame" x="-0.45544554455455" y="2.2211195690813383" width="393" height="43.666667938232422"/>
-                                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                                    <rect key="frame" x="0.0" y="0.0" width="500" height="1"/>
+                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <state key="normal" title="Button"/>
-                                                    <buttonConfiguration key="configuration" style="plain" title="Help"/>
+                                                    <buttonConfiguration key="configuration" style="plain" title="Help" buttonSize="medium"/>
                                                     <connections>
-                                                        <segue destination="Rpw-pB-TKH" kind="presentation" id="dvP-6R-UEI"/>
+                                                        <segue destination="Rpw-pB-TKH" kind="presentation" modalPresentationStyle="overFullScreen" id="dvP-6R-UEI"/>
                                                     </connections>
                                                 </button>
                                             </subviews>
@@ -103,6 +139,7 @@
                             <outlet property="delegate" destination="Egc-jZ-UwG" id="413-5T-4yE"/>
                         </connections>
                     </tableView>
+                    <size key="freeformSize" width="500" height="852"/>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="L17-HS-2xq" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
@@ -127,13 +164,15 @@
         <!--Help-->
         <scene sceneID="re0-E4-iuz">
             <objects>
-                <viewController title="Help" id="Rpw-pB-TKH" sceneMemberID="viewController">
-                    <stackView key="view" opaque="NO" contentMode="scaleToFill" axis="vertical" id="lrf-Mt-Kvi">
-                        <rect key="frame" x="0.0" y="0.0" width="393" height="842"/>
-                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                <viewController title="Help" keyboardType="off" id="Rpw-pB-TKH" sceneMemberID="viewController">
+                    <stackView key="view" contentMode="top" horizontalHuggingPriority="1000" verticalHuggingPriority="1000" horizontalCompressionResistancePriority="250" verticalCompressionResistancePriority="250" preservesSuperviewLayoutMargins="YES" layoutMarginsFollowReadableWidth="YES" axis="vertical" alignment="top" id="lrf-Mt-Kvi">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask"/>
                         <subviews>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" horizontalCompressionResistancePriority="500" verticalCompressionResistancePriority="250" usesAttributedText="YES" lineBreakMode="wordWrap" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="WjQ-PR-oy2">
-                                <rect key="frame" x="0.0" y="0.0" width="393" height="842"/>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="1000" verticalHuggingPriority="1000" horizontalCompressionResistancePriority="250" insetsLayoutMarginsFromSafeArea="NO" usesAttributedText="YES" lineBreakMode="wordWrap" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="WjQ-PR-oy2">
+                                <rect key="frame" x="40" y="103" width="313" height="715"/>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                <gestureRecognizers/>
                                 <attributedString key="attributedText">
                                     <fragment content="Camera only">
                                         <attributes>
@@ -175,16 +214,15 @@ Camera only mode shows a full screen view of what is visible from the back facin
                                         </attributes>
                                     </fragment>
                                     <fragment>
-                                        <string key="content">Sequential videos
+                                        <string key="content">Video sequence
 </string>
                                         <attributes>
                                             <color key="NSColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                            <font key="NSFont" metaFont="systemBold" size="19"/>
-                                            <font key="NSOriginalFont" metaFont="systemBold" size="17"/>
+                                            <font key="NSFont" metaFont="systemBold" size="17"/>
                                             <paragraphStyle key="NSParagraphStyle" alignment="left" lineBreakMode="wordWrapping" baseWritingDirection="natural" tighteningFactorForTruncation="0.0"/>
                                         </attributes>
                                     </fragment>
-                                    <fragment content="Plays videos sequentially from the given folder.">
+                                    <fragment content="Plays videos sequentially from the given folder. You can use a bluetooth controller or clicker to skip videos.">
                                         <attributes>
                                             <color key="NSColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                             <font key="NSFont" metaFont="system" size="17"/>
@@ -193,20 +231,26 @@ Camera only mode shows a full screen view of what is visible from the back facin
                                     </fragment>
                                 </attributedString>
                                 <nil key="highlightedColor"/>
+                                <string key="userLabel">Camera only Camera only mode shows a full screen view of what is visible from the back facing camera of your device.  Video dialing Plays videos from the given folder, but defaults to a live camera. Typing a video name with an external keyboard will play that video.  Video sequence Plays videos sequentially from the given folder. You can use a bluetooth controller or clicker to skip videos.</string>
                             </label>
                         </subviews>
-                        <viewLayoutGuide key="safeArea" id="1e0-fc-ars"/>
+                        <viewLayoutGuide key="safeArea" id="6aZ-fw-Fj8"/>
+                        <edgeInsets key="layoutMargins" top="0.0" left="40" bottom="0.0" right="40"/>
                     </stackView>
+                    <splitViewMasterSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="SD5-Y4-1ET" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-769" y="543"/>
+            <point key="canvasLocation" x="-691" y="750"/>
         </scene>
     </scenes>
     <inferredMetricsTieBreakers>
-        <segue reference="ne9-lw-yJS"/>
+        <segue reference="yrO-79-B0t"/>
     </inferredMetricsTieBreakers>
     <resources>
+        <systemColor name="secondaryLabelColor">
+            <color red="0.23529411759999999" green="0.23529411759999999" blue="0.26274509800000001" alpha="0.59999999999999998" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>

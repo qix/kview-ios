@@ -24,15 +24,18 @@ enum LiveMode {
     case videoDialing, videoSequential, cameraOnly
 }
 
-class LiveController: UIViewController, UIDocumentPickerDelegate {
+class LiveController: UIViewController, UIDocumentPickerDelegate, AVCapturePhotoCaptureDelegate {
     var nextOrderedIndex = 0
     var orderedURLS: [URL] = []
     var groupedURLS: [String: [URL]] = [:]
     var mode: LiveMode = .cameraOnly
     var liveVideo = false
     var active = false
-    var videoFolderEnabled = true
+    var timelapseEnabled = false
+    var videoFolderLoaded = false
+    
     var resumeTimer: Timer? = nil
+    var timelapseTimer: Timer? = nil
     
     var fileName = ""
     var pausedAt: [String.Index] = []
@@ -40,37 +43,109 @@ class LiveController: UIViewController, UIDocumentPickerDelegate {
     var captureSession = AVCaptureSession()
     var previewLayer: AVCaptureVideoPreviewLayer!
     var captureDevice: AVCaptureDevice!
+    var photoOutput: AVCapturePhotoOutput!
+
+    var mediaURL: URL? = nil
     
     func prepareCamera() {
         captureSession.sessionPreset = AVCaptureSession.Preset.photo
-
-        let availableDevices = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera], mediaType: AVMediaType.video, position: .back).devices
-        
-        captureDevice = availableDevices.first
-        
-        if let captureDevice = AVCaptureDevice.default(for: .video) {
-            do {
-                let input = try AVCaptureDeviceInput(device: captureDevice)
-                captureSession.addInput(input)
-            } catch {
-                print("Failed to capture camera")
-                return
-            }
-            previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-            previewLayer.frame = view.frame
-            previewLayer.videoGravity = .resizeAspectFill
-            previewLayer.connection?.videoRotationAngle = 0
+        captureDevice = AVCaptureDevice.default(for: .video)
+        if captureDevice == nil {
+            return
         }
+    
+        do {
+            let input = try AVCaptureDeviceInput(device: captureDevice)
+            captureSession.addInput(input)
+        } catch {
+            print("Failed to capture camera")
+            return
+        }
+        
+        photoOutput = AVCapturePhotoOutput()
+        captureSession.addOutput(photoOutput)
+
+        previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
+        previewLayer.frame = view.frame
+        previewLayer.videoGravity = .resizeAspectFill
+        previewLayer.connection?.videoRotationAngle = 0
     }
         
     func prepareAudio() {
         guard let _ = try? AVAudioSession.sharedInstance().setCategory(
             AVAudioSession.Category.playback,
-            mode: AVAudioSession.Mode.default,
-            options: []
+            mode: AVAudioSession.Mode.moviePlayback,
+            options: [.mixWithOthers, .duckOthers]
         ) else { return }
     }
 
+
+    func capturePhoto() {
+        let settings = AVCapturePhotoSettings()
+        settings.flashMode = .off
+        photoOutput.capturePhoto(with: settings, delegate: self)
+        
+        // Less noise in timelapse mode, cancel the system sound if it starts playing
+        Task.detached {
+            for _ in 1...250 {
+                try? await Task.sleep(nanoseconds: UInt64(10_000_000))
+                AudioServicesDisposeSystemSoundID(1108)
+            }
+        }
+    }
+
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+        guard let imageData = photo.fileDataRepresentation() else {
+            print("Error capturing photo: \(error?.localizedDescription ?? "unknown error")")
+            return
+        }
+
+        
+        if mediaURL != nil {
+            savePhotoToDisk(mediaURL!, imageData)
+        } else {
+            print("No mediaURL, could not capture photo")
+        }
+        
+    }
+
+    func savePhotoToDisk(_ folderURL: URL, _ imageData: Data) {
+        let fileManager = FileManager.default
+
+        let dateFormatter = DateFormatter()
+        let currentDateTime = Date()
+        
+        dateFormatter.dateFormat = "yyyyMMddHHmmss"
+        let timeStr = dateFormatter.string(from: currentDateTime)
+        dateFormatter.dateFormat = "yyyyMMddHH"
+        let hourStr = dateFormatter.string(from: currentDateTime)
+        
+        let timezoneAbbreviation = TimeZone.current.abbreviation() ?? "UTC"
+        
+        let dirName = "Timelapse-" + timezoneAbbreviation + "-" + hourStr
+        let fileName = timeStr + ".jpg"
+        
+        let dirURL = folderURL.appendingPathComponent(dirName)
+        let fileURL = dirURL.appendingPathComponent(fileName)
+        
+        if !fileManager.fileExists(atPath: dirURL.path) {
+            do {
+                // Create the directory
+                try fileManager.createDirectory(at: dirURL, withIntermediateDirectories: true, attributes: nil)
+                print("Directory created at \(dirURL)")
+            } catch {
+                print("Error creating directory: \(error)")
+            }
+        }
+
+        do {
+            try imageData.write(to: fileURL)
+            print("Photo saved to: \(fileURL)")
+        } catch {
+            print("Error saving photo: \(error)")
+        }
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -104,6 +179,10 @@ class LiveController: UIViewController, UIDocumentPickerDelegate {
             timer.invalidate()
             resumeTimer = nil
         }
+        if let timer = timelapseTimer {
+            timer.invalidate()
+            timelapseTimer = nil
+        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -112,15 +191,15 @@ class LiveController: UIViewController, UIDocumentPickerDelegate {
             print("Request guided access success: \(success)")
         }
         
-        if mode == .videoDialing || mode == .videoSequential {
+        if videoFolderLoaded == false && (mode == .videoDialing || mode == .videoSequential) {
             let documentPicker =
                 UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
             documentPicker.delegate = self
                 
             // Present the document picker.
             present(documentPicker, animated: false, completion: nil)
-        } else if (mode == .cameraOnly) {
-            self.active = true
+        } else if mode == .cameraOnly {
+            active = true
             playVideo("LIVE")
         } else {
             print("Error: Unknown mode")
@@ -128,6 +207,18 @@ class LiveController: UIViewController, UIDocumentPickerDelegate {
     }
 
     override func viewDidAppear(_ animated: Bool) {
+        if let timer = timelapseTimer {
+            timer.invalidate()
+            timelapseTimer = nil
+        }
+        if timelapseEnabled {
+            timelapseTimer = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [unowned self] _ in
+                if self.captureDevice != nil {
+                    self.capturePhoto()
+                }
+            }
+        }
+        
         // Something keeps going wrong, just check every five seconds and try restart if there are issues
         if let timer = resumeTimer {
             timer.invalidate()
@@ -177,7 +268,7 @@ class LiveController: UIViewController, UIDocumentPickerDelegate {
 
     func splitFilenames(_ urls: [URL]) -> [String: [URL]] {
         var result: [String: [URL]] = [:]
-
+        let trimChars = CharacterSet(charactersIn: "!")
         for url in urls {
             let filename = url.deletingPathExtension().lastPathComponent
             let components = filename.components(separatedBy: "_")
@@ -185,7 +276,11 @@ class LiveController: UIViewController, UIDocumentPickerDelegate {
                 if component == "" {
                     break
                 }
-                let numbers: String = component.map(letterToNumber).joined(separator: "")
+                
+                let numbers: String = component
+                    .trimmingCharacters(in: trimChars)
+                    .map(letterToNumber)
+                    .joined(separator: "")
 
                 for key in [numbers, component.uppercased()] {
                     if result[key] != nil {
@@ -215,7 +310,7 @@ class LiveController: UIViewController, UIDocumentPickerDelegate {
         }
         if mode == .videoSequential {
             let playIndex = nextOrderedIndex
-            nextOrderedIndex = (nextOrderedIndex +  1) % orderedURLS.count
+            nextOrderedIndex = (nextOrderedIndex + 1) % orderedURLS.count
             return orderedURLS[playIndex]
         }
         if groupedURLS[number] != nil {
@@ -237,6 +332,8 @@ class LiveController: UIViewController, UIDocumentPickerDelegate {
 
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         let pickedFolderURL = urls[0]
+        mediaURL = pickedFolderURL
+        
         let shouldStopAccessing = pickedFolderURL.startAccessingSecurityScopedResource()
         defer {
             if shouldStopAccessing {
@@ -249,7 +346,7 @@ class LiveController: UIViewController, UIDocumentPickerDelegate {
         
         orderedURLS = []
         for case let file as URL in fileList {
-            if file.pathExtension.lowercased() == "mp4" {
+            if ["mp4", "mov"].contains(file.pathExtension.lowercased())  {
                 orderedURLS.append(file)
             }
         }
@@ -264,7 +361,8 @@ class LiveController: UIViewController, UIDocumentPickerDelegate {
             }
         }
 
-        self.active = true
+        videoFolderLoaded = true
+        active = true
         playVideo("NEXT")
     }
         
@@ -314,9 +412,12 @@ class LiveController: UIViewController, UIDocumentPickerDelegate {
         guard let key = presses.first?.key else { return }
         
         switch key.keyCode.rawValue {
+        case (UIKeyboardHIDUsage.keypad1.rawValue)...(UIKeyboardHIDUsage.keypad0.rawValue):
+            fallthrough
         case (UIKeyboardHIDUsage.keyboardA.rawValue)...(UIKeyboardHIDUsage.keyboardZ.rawValue):
             fallthrough
-        case (UIKeyboardHIDUsage.keyboard1.rawValue)...(UIKeyboardHIDUsage.keyboard0.rawValue):
+        case
+            (UIKeyboardHIDUsage.keyboard1.rawValue)...(UIKeyboardHIDUsage.keyboard0.rawValue):
             fileName.append(key.characters.map(letterToNumber).joined(separator: ""))
             print("Updated fileName to: " + fileName)
             resetKeyTimer()
