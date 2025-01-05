@@ -51,7 +51,7 @@ void startAdv(void)
 
 int inputPin = 13;
 bool hasKeyPressed = false;
-bool serialOutput = false;
+bool serialOutput = true;
 bool showPulses = true;
 
 unsigned long lastLoop = 0;
@@ -200,4 +200,3 @@ void loop()
      delay(5);
   }
 }
-
